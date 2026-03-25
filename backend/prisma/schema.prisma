@@ -1,0 +1,223 @@
+// KaziGo Database Schema
+// Covers all 5 pillars: Identity, Shield, Circle, Wallet, Guide
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── IDENTITY PILLAR ──────────────────────────────────────────────────────────
+
+model Worker {
+  id          String   @id @default(uuid())
+  phone       String   @unique
+  name        String
+  skill       String
+  location    String
+  idNumber    String?
+  verified    Boolean  @default(false)
+  score       Float    @default(0)
+  totalJobs   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobsAsWorker  Job[]         @relation("WorkerJobs")
+  walletEntries WalletEntry[]
+  circleMembers CircleMember[]
+  guideMessages GuideMessage[]
+  ratingsGiven  Rating[]      @relation("RaterRatings")
+  ratingsReceived Rating[]    @relation("RatedRatings")
+
+  @@map("workers")
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String
+  email     String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  jobs      Job[]
+
+  @@map("clients")
+}
+
+// ─── SHIELD PILLAR ────────────────────────────────────────────────────────────
+
+model Job {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  skill       String
+  location    String
+  budget      Float
+  status      JobStatus @default(OPEN)
+  escrowLocked Boolean  @default(false)
+  escrowAmount Float    @default(0)
+
+  clientId    String
+  workerId    String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  client      Client    @relation(fields: [clientId], references: [id])
+  worker      Worker?   @relation("WorkerJobs", fields: [workerId], references: [id])
+  ratings     Rating[]
+  circleJob   CircleJob?
+  messages    JobMessage[]
+
+  @@map("jobs")
+}
+
+enum JobStatus {
+  OPEN
+  MATCHED
+  ESCROW_LOCKED
+  IN_PROGRESS
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  score     Int      // 1-5
+  comment   String?
+  jobId     String
+  raterId   String
+  ratedId   String
+  createdAt DateTime @default(now())
+
+  job       Job      @relation(fields: [jobId], references: [id])
+  rater     Worker   @relation("RaterRatings", fields: [raterId], references: [id])
+  rated     Worker   @relation("RatedRatings", fields: [ratedId], references: [id])
+
+  @@map("ratings")
+}
+
+// ─── CIRCLE PILLAR ────────────────────────────────────────────────────────────
+
+model Circle {
+  id            String   @id @default(uuid())
+  name          String
+  skill         String
+  description   String?
+  collectiveScore Float  @default(0)
+  savingsPool   Float    @default(0)
+  savingsPct    Int      @default(5) // % of each job auto-saved
+  createdAt     DateTime @default(now())
+
+  // Relations
+  members       CircleMember[]
+  jobs          CircleJob[]
+
+  @@map("circles")
+}
+
+model CircleMember {
+  id        String       @id @default(uuid())
+  circleId  String
+  workerId  String
+  role      CircleRole   @default(MEMBER)
+  splitPct  Int          @default(0) // earnings split percentage
+  joinedAt  DateTime     @default(now())
+
+  circle    Circle       @relation(fields: [circleId], references: [id])
+  worker    Worker       @relation(fields: [workerId], references: [id])
+
+  @@unique([circleId, workerId])
+  @@map("circle_members")
+}
+
+enum CircleRole {
+  LEAD
+  MEMBER
+}
+
+model CircleJob {
+  id        String   @id @default(uuid())
+  circleId  String
+  jobId     String   @unique
+  status    JobStatus @default(OPEN)
+  createdAt DateTime @default(now())
+
+  circle    Circle   @relation(fields: [circleId], references: [id])
+  job       Job      @relation(fields: [jobId], references: [id])
+
+  @@map("circle_jobs")
+}
+
+// ─── WALLET PILLAR ────────────────────────────────────────────────────────────
+
+model WalletEntry {
+  id          String          @id @default(uuid())
+  workerId    String
+  amount      Float
+  type        WalletEntryType
+  description String
+  jobId       String?
+  createdAt   DateTime        @default(now())
+
+  worker      Worker          @relation(fields: [workerId], references: [id])
+
+  @@map("wallet_entries")
+}
+
+enum WalletEntryType {
+  EARNING
+  SAVINGS
+  WITHDRAWAL
+  BONUS
+}
+
+// ─── GUIDE PILLAR ─────────────────────────────────────────────────────────────
+
+model GuideMessage {
+  id        String   @id @default(uuid())
+  workerId  String
+  trigger   String   // e.g. "first_job", "pricing", "dispute", "scam_alert"
+  message   String
+  response  String
+  sentAt    DateTime @default(now())
+
+  worker    Worker   @relation(fields: [workerId], references: [id])
+
+  @@map("guide_messages")
+}
+
+// ─── ACTIVITY LOG (for admin panel) ──────────────────────────────────────────
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  type      String   // "ussd", "sms", "payment", "guide", "circle"
+  pillar    String   // "identity", "shield", "circle", "wallet", "guide"
+  message   String
+  phone     String?
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+model JobMessage {
+  id         String   @id @default(uuid())
+  jobId      String
+  senderType String   // "client" | "worker"
+  senderName String
+  message    String
+  createdAt  DateTime @default(now())
+
+  job        Job      @relation(fields: [jobId], references: [id])
+
+  @@map("job_messages")
+}

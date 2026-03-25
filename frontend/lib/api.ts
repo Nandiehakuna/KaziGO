@@ -51,3 +51,10 @@ export const getWallet = (workerId: string) =>
 // Admin
 export const getAdminStats = () => fetchAPI<any>("/api/admin/stats")
 export const getActivity = () => fetchAPI<any[]>("/api/admin/activity")
+
+// Guide
+export const askGuide = (question: string, workerPhone?: string) =>
+  fetchAPI<{ advice: string; workerName: string }>("/api/guide/ask", {
+    method: "POST",
+    body: JSON.stringify({ question, workerPhone }),
+  })

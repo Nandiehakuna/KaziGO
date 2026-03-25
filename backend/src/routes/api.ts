@@ -332,3 +332,22 @@ router.get("/admin/activity", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+// ─── GUIDE ASK ────────────────────────────────────────────────────────────────
+router.post("/guide/ask", async (req: Request, res: Response) => {
+  const { question, workerPhone } = req.body;
+  
+  let worker = null;
+  if (workerPhone) {
+    worker = await prisma.worker.findUnique({ where: { phone: workerPhone } });
+  }
+  if (!worker) {
+    // Use first worker as fallback for demo
+    worker = await prisma.worker.findFirst();
+  }
+  if (!worker) return res.status(404).json({ error: "No workers found" });
+
+  const advice = await getGuideAdvice(worker, question);
+  await logActivity("guide", "guide", `Guide web query: ${question.substring(0, 50)}`, worker.phone);
+  res.json({ advice, workerName: worker.name });
+});

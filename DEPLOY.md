@@ -141,7 +141,7 @@ Submit these links:
 
 ## Demo Checklist for Presentation
 
-- [ ] Backend live on Railway ✓
+- [ k] Backend live on Railway ✓
 - [ ] Frontend live on Vercel ✓  
 - [ ] AT USSD callback pointing to Railway URL ✓
 - [ ] Amina registered in production DB ✓

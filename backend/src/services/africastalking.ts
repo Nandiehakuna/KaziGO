@@ -1,7 +1,7 @@
 import AfricasTalking from "africastalking";
 import { logActivity } from "./activity";
 
-const at = AfricasTalking({
+const at:any = AfricasTalking({
   apiKey: process.env.AT_API_KEY!,
   username: process.env.AT_USERNAME || "sandbox",
 });

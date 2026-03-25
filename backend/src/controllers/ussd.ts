@@ -148,9 +148,18 @@ in ${worker.location}.
     const jobId = jobIds[parseInt(currentInput) - 1];
 
     if (jobId) {
+      const existingJob = await prisma.job.findUnique({ where: { id: jobId } });
+
+      if (!existingJob) {
+        response = `END Sorry, that job is no longer available.`;
+        res.set("Content-Type", "text/plain");
+        res.send(response);
+        return;
+      }
+
       const job = await prisma.job.update({
         where: { id: jobId },
-        data: { workerId: worker.id, status: "ESCROW_LOCKED", escrowLocked: true, escrowAmount: job => job.budget },
+        data: { workerId: worker.id, status: "ESCROW_LOCKED", escrowLocked: true, escrowAmount: existingJob.budget },
         include: { client: true },
       });
 

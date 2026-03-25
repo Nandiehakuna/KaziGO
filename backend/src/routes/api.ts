@@ -331,7 +331,6 @@ router.get("/admin/activity", async (req: Request, res: Response) => {
   res.json(activity);
 });
 
-export default router;
 
 // ─── GUIDE ASK ────────────────────────────────────────────────────────────────
 router.post("/guide/ask", async (req: Request, res: Response) => {
@@ -351,3 +350,5 @@ router.post("/guide/ask", async (req: Request, res: Response) => {
   await logActivity("guide", "guide", `Guide web query: ${question.substring(0, 50)}`, worker.phone);
   res.json({ advice, workerName: worker.name });
 });
+export default router;
+
